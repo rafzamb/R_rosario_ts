@@ -1,0 +1,37 @@
+---
+title: "automagic_tabs"
+author: "sknifedatar"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, 
+                      message = FALSE, 
+                      comment=FALSE)
+```
+
+```{r}
+library(sknifedatar)
+library(timetk)
+library(tidyverse)
+```
+
+```{r}
+emae <- sknifedatar::emae_series 
+
+nest_data <- emae %>%
+  nest(nested_column = -sector) %>% 
+  mutate(ts_plots = map(nested_column, 
+                        ~ plot_time_series(.data = .x,
+                                           .date_var = date,
+                                           .value = value,
+                                           .interactive = FALSE,
+                                           .line_size = 0.15)
+                         ))
+```
+
+```{r ,echo=FALSE}
+xaringanExtra::use_panelset()
+```
+
+`r automagic_tabs(input_data = nest_data, panel_name = "sector", .output = "ts_plots")`
