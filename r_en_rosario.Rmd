@@ -555,3 +555,302 @@ forecast_final %>%
 ```
 
 ---
+
+
+
+# Workflowsets en múltiples series 
+
+```{r, fig.align='center', echo=FALSE}
+knitr::include_graphics('images/diagrama_wfs.png')
+```
+
+
+---
+
+```{r}
+nest_data <- data_cleaned %>% nest(nested_column = -dept_id)
+```
+
+```{r, echo=FALSE, out.height='10%'}
+reactable::reactable(nest_data, details = function(index) {
+  data <- data[data$dept_id == nest_data$dept_id[index], c('date','value')] %>% 
+    mutate(value = round(value, 2))
+  htmltools::div(style = "padding: 10px", reactable::reactable(data, outlined = TRUE))
+}, defaultPageSize=4) 
+```
+
+---
+
+### Recetas 🌮
+```{r}
+# Receta base
+recipe_base <- recipe(value~date, data=data_cleaned)
+# Características según fecha
+recipe_date_extrafeatures <- recipe_base %>% 
+  step_date(date, features = c('month','year','quarter','semester'))
+# Resagos
+recipe_date_extrafeatures_lag <- recipe_date_extrafeatures %>% 
+  step_lag(value, lag = 1:6) %>% 
+  step_ts_impute(all_numeric(), period=365)
+# Fourier
+recipe_date_extrafeatures_fourier <-recipe_date_extrafeatures  %>% 
+  step_fourier(date, period = 365/12, K = 1)
+```
+
+---
+### Modelos 🚀
+
+```{r}
+# prophet_xgboost
+prophet_boost <- prophet_boost(mode = 'regression') %>% 
+  set_engine("prophet_xgboost")
+# nnetar
+nnetar <- nnetar_reg() %>% 
+  set_engine("nnetar")
+#auto_arima_xgboost
+auto_arima_boost <- arima_boost() %>% 
+  set_engine('auto_arima_xgboost')
+```
+
+---
+
+
+### Workflowsets ✨
+
+```{r}
+wfsets <- workflow_set(
+  preproc = list(
+    base                  = recipe_base,
+    extrafeatures         = recipe_date_extrafeatures,
+    extrafeatures_lag     = recipe_date_extrafeatures_lag,
+    extrafeatures_fourier = recipe_date_extrafeatures_fourier
+  ),
+  models  = list(
+    #M_arima_boost       = auto_arima_boost,
+    M_prophet_boost     = prophet_boost,
+    M_nnetar            = nnetar
+  ),
+  cross   = TRUE
+) 
+```
+
+---
+👉 El objeto **wfsets** contiene todas las posibles combinaciones de recetas con modelos: 
+
+```{r}
+wfsets %>% 
+  rmarkdown::paged_table(list(rows.print = 6))
+```
+
+---
+
+### Ajuste de modelos ⚙️ 
+```{r, eval=FALSE}
+wfs_multifit <- modeltime_wfs_multifit(serie = nest_data,
+                                       .prop = 0.8,
+                                       .wfs  = wfsets)
+```
+
+```{r, echo=FALSE}
+#saveRDS(wfs_multifit, 'modelos/wfs_multifit.rds')
+wfs_multifit <- readRDS('modelos/wfs_multifit.rds')
+```
+
+```{r, echo=FALSE}
+wfs_multifit$table_time %>% 
+  rmarkdown::paged_table(list(rows.print = 6))
+```
+
+---
+**Performance según rsq de cada modelo en cada serie**
+.panelset[
+.panel[.panel-name[FOODS_2]
+
+```{r, message=FALSE, echo=FALSE, fig.width=10, fig.height=5}
+plots <- wfs_multifit$models_accuracy %>% 
+  select(-.model_id) %>%  
+  rename(.model_id=.model_names) %>% mutate(.fit_model = '') %>% 
+  group_by(name_serie) %>% 
+  nest() %>% 
+  mutate(plot = map(data, ~ modeltime_wfs_heatmap(., metric = 'rsq',
+                                                 low_color = '#ece2f0',
+                                                 high_color = '#1f356e'
+                                                 ))) %>% 
+  ungroup()
+plots$plot[[1]]
+```
+]
+
+.panel[.panel-name[FOODS_3]
+
+```{r, echo=FALSE, fig.width=10, fig.height=5}
+plots$plot[[2]]
+```
+]
+
+.panel[.panel-name[HOBBIES_2]
+
+```{r, echo=FALSE, fig.width=10, fig.height=5}
+plots$plot[[3]]
+```
+]
+
+.panel[.panel-name[HOUSEHOLD_1]
+
+```{r, echo=FALSE, fig.width=10, fig.height=5}
+plots$plot[[4]]
+```
+]
+]
+---
+### Proyecciones 🔬
+```{r, message=FALSE, warning=FALSE}
+wfs_multiforecast <- modeltime_wfs_multiforecast(
+  wfs_multifit$table_time, .prop=0.8)
+```
+
+```{r, echo=FALSE, fig.height=6, fig.width=14, fig.align='center'}
+wfs_multiforecast %>% 
+  select(dept_id, nested_forecast) %>% 
+  unnest(nested_forecast) %>% 
+  group_by(dept_id) %>% 
+  plot_modeltime_forecast(
+    .legend_max_width = 40,
+    .facet_ncol = 2, 
+    .line_size = 0.5,
+    .interactive = FALSE,
+    .facet_scales = 'free_y',
+    .title='Proyecciones') +
+  theme(legend.position='bottom', legend.margin=margin())
+```
+
+---
+### Selección del mejor modelo 🥇
+```{r}
+wfs_bests<- modeltime_wfs_multibestmodel(
+  .table = wfs_multiforecast,
+  .metric = "rsq",
+  .minimize = FALSE
+)
+```
+
+### Reentrenamiento para todos los datos 🌀
+
+```{r, eval=FALSE, message=FALSE, warning=FALSE, comment=FALSE}
+wfs_refit <- modeltime_wfs_multirefit(wfs_bests)
+```
+
+```{r, echo=FALSE}
+#saveRDS(wfs_refit, 'modelos/wfs_refit.rds')
+wfs_refit <- readRDS('modelos/wfs_refit.rds')
+```
+
+---
+### Proyecciones a 12 meses 🔮
+
+```{r, message=FALSE, warning=FALSE, comment=FALSE}
+wfs_forecast <- modeltime_wfs_multiforecast(wfs_refit, 
+                                            .h = "12 month")
+```
+
+```{r, echo=FALSE, fig.width=10, fig.height=6}
+wfs_forecast %>% 
+  select(dept_id, nested_forecast) %>% 
+  unnest(nested_forecast) %>% 
+  group_by(dept_id) %>% 
+  plot_modeltime_forecast(
+    .facet_ncol = 2, 
+    .line_size = 0.5,
+    .legend_max_width = 50,
+    .interactive = FALSE,
+    .facet_scales = 'free_y',
+    .title='Proyecciones')+
+  theme(legend.position='bottom')
+```
+---
+
+ <br> 
+ <br>
+# Automagic Tabs 
+<br>
+
+
+```{r, out.width='50%', fig.align='center', echo=FALSE}
+knitr::include_graphics('images/gif_gato_tocadisco.gif')
+```
+
+
+---
+# ¿Por qué utilizar tabs? 🤔
+
+Mostrar muchos gráficos  📈 o resultados de modelos 🤖 juntos puede generar confusión. Organizar los resultados en solapas permite centrar la atención en ciertos aspectos y no sobrecargar de información. 
+
+.panelset[
+.panel[.panel-name[👋 Hey!]
+Esta es la primera tab
+
+🌟 Hacer click en las tabs para consejos no solicitados 🌟 👆
+
+]
+
+.panel[.panel-name[Consejo 1]
+```{r, out.width="50%",echo=FALSE ,fig.align = 'center'}
+knitr::include_graphics('https://media.tenor.com/images/be8a87467b75e9deaa6cfe8ad0b739a0/tenor.gif')
+```
+]
+
+.panel[.panel-name[Consejo 2]
+```{r, out.width="50%",echo=FALSE ,fig.align = 'center'}
+knitr::include_graphics('https://media.tenor.com/images/6a2cca305dfacae61c5668dd1687ad55/tenor.gif')
+```
+]
+
+.panel[.panel-name[Consejo 3]
+```{r, out.width="50%",echo=FALSE ,fig.align = 'center'}
+knitr::include_graphics('https://media.tenor.com/images/bfde5ad652b71fc9ded82c6ed760355b/tenor.gif')
+```
+]
+]
+---
+## ¿Cómo se crean tabs manualmente?
+
+```{r, out.width='70%', echo=FALSE, fig.align='center'}
+knitr::include_graphics('https://karbartolome-blog.netlify.app/posts/automagictabs/data/tabs.png')
+```
+
+---
+<br>
+<br>
+<br>
+
+```{r, out.width='50%', echo=FALSE, fig.align='center'}
+knitr::include_graphics('images/gif_minon_2.gif')
+```
+
+---
+## Generación automática de tabs 🙌
+
+👉 **Código inline** , utilizando un dataframe anidado, que incluye una variable del resultado a presentar por tab ('ts_plots'), y una variable agrupadora ('state')
+
+```{r, eval=FALSE}
+`r automagic_tabs(input_data = nest_plots_1, 
+                  panel_name = "state", 
+                  .output = "ts_plots")`
+```
+
+
+
+---
+
+```{r, out.width='30%', echo=FALSE, fig.align='center'}
+knitr::include_graphics('images/gif_bye.gif')
+```
+
+
+## Contactos ✉
+
+Karina Bartolome [![Twitter Badge](https://img.shields.io/badge/-@karbartolome-1ca0f1?style=flat&labelColor=1ca0f1&logo=twitter&logoColor=white&link=https://twitter.com/karbartolome)](https://twitter.com/karbartolome) [![Linkedin Badge](https://img.shields.io/badge/-karina bartolome-blue?style=flat&logo=Linkedin&logoColor=white&link=https://www.linkedin.com/in/karinabartolome/)](https://www.linkedin.com/in/karinabartolome/) [![Github Badge](https://img.shields.io/badge/-karbartolome-black?style=flat&logo=Github&logoColor=white&link=https://github.com/karbartolome)](https://github.com/karbartolome) [![Website Badge](https://img.shields.io/badge/-Personal%20blog-47CCCC?style=flat&logo=Google-Chrome&logoColor=white&link=https://karbartolome-blog.netlify.app/)](https://karbartolome-blog.netlify.app/)
+
+
+
+Rafael Zambrano [![Twitter Badge](https://img.shields.io/badge/-@rafa_zamr-1ca0f1?style=flat&labelColor=1ca0f1&logo=twitter&logoColor=white&link=https://twitter.com/rafa_zamr)](https://twitter.com/rafa_zamr) [![Linkedin Badge](https://img.shields.io/badge/-rafael zambrano-blue?style=flat&logo=Linkedin&logoColor=white&link=https://www.linkedin.com/in/rafael-zambrano/)](https://www.linkedin.com/in/rafael-zambrano/) [![Github Badge](https://img.shields.io/badge/-rafzamb-black?style=flat&logo=Github&logoColor=white&link=https://github.com/rafzamb)](https://github.com/rafzamb) [![Website Badge](https://img.shields.io/badge/-Personal%20blog-47CCCC?style=flat&logo=Google-Chrome&logoColor=white&link=https://rafael-zambrano-blog-ds.netlify.app/)](https://rafael-zambrano-blog-ds.netlify.app/)
