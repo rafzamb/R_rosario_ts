@@ -1,0 +1,118 @@
+---
+title: "Sknifedatar: R-Rosario"
+author: "Rafael Zambrano & Karina Bartolomé"
+date: '2021-10-06'
+output: 
+  xaringan::moon_reader:
+    seal: false
+    css: "xaringan-themer.css"
+    nature:
+      navigation: 
+        scroll: false
+---
+class: center
+
+```{r, out.width='40%', echo=FALSE}
+#knitr::include_graphics('images/gif_serie.gif')
+```
+# Sknifedatar
+
+**Ajuste y visualización de múltiples modelos**
+
+**sobre múltiples series de tiempo**
+
+<br>
+<br>
+<br>
+2021-06-24
+
+Rafael Zambrano & Karina Bartolomé
+<br>
+
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, 
+                      message = FALSE, 
+                      comment=FALSE)
+```
+
+```{r xaringan-themer, include=FALSE, warning=FALSE, eval=FALSE}
+# Para generar el .css pero igual ya está generado, no correr de vuelta y editar el archivo directamente 
+library(xaringanthemer)
+style_mono_accent(
+  title_slide_background_color	='#ffffff',
+  title_slide_text_color = '#33407d',
+  base_color = "#33407d",
+  header_font_google = google_font("Josefin Sans"),
+  text_font_google   = google_font("Montserrat", "300", "300i"),
+  code_font_google   = google_font("Fira Mono")
+)
+```
+
+```{css, echo=FALSE}
+/* Table width = 100% max-width */
+.remark-slide table{width: 100%;}
+/* Change the background color to white for shaded rows (even rows) */
+.remark-slide thead, .remark-slide tr:nth-child(2n) {
+  background-color: white;
+  .tfoot .td {background-color: white}
+}
+.bold-last-item > ul > li:last-of-type,
+.bold-last-item > ol > li:last-of-type {font-weight: bold;}
+```
+
+
+```{r, include=FALSE, warning=FALSE}
+xaringanExtra::use_progress_bar(color = "#0051BA", location = "top")
+```
+
+# ¿Quiénes somos?
+.pull-left[
+### Rafael Zambrano
+- Actuario 🇻🇪
+- Data Scientist en Ualá 🚀
+- Magister en métodos cuantitativos (en curso)
+]
+.pull-right[
+<br>
+<br>
+```{r, out.width='35%', fig.align='center', echo=FALSE}
+#knitr::include_graphics('images/imagen_b.jpeg')
+```
+]
+
+.pull-left[
+### Karina Bartolomé
+- Economista 🇦🇷
+- Data Scientist en Ualá 🚀
+- Especialista en métodos cuantitativos (en curso)
+]
+.pull-right[
+<br>
+<br>
+```{r, out.width='35%', fig.align='center', echo=FALSE}
+#knitr::include_graphics('images/imagen_a.jpeg')
+```
+]
+---
+# ¿Qué es #modeltime?
+
+Es un ecosistema desarrollado por **Matt Dancho** para realizar análisis de series de tiempo mediante un enfoque ordenado (o Tidy) con #tidymodels 📦. 
+
+```{r, echo=FALSE, out.height='90%',out.width='90%',  fig.align='center'}
+#knitr::include_graphics('images/modeltime.png')
+```
+
+---
+
+# Sknifedatar 📦
+#### Una extensión de **#modeltime**
+```{r, eval=FALSE}
+install.packages('sknifedatar')
+```
+--
+
+```{r}
+iris$Sepal.Length %>% plot()
+```
+
