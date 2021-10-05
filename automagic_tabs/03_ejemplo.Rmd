@@ -67,6 +67,20 @@ dataset <- dataset %>% filter(Home != "ignore")
 # dataset$datos[[1]] %>% head()
 ```
 
+```{r}
+set.seed(42)
+dataset$datos[[2]] <- dataset$datos[[2]] %>% 
+                            mutate(Time = Age+runif(nrow(dataset$datos[[2]]), min=5, max=20))
+```
+
+```{r}
+set.seed(42)
+dataset$datos[[3]] <- dataset$datos[[3]] %>% 
+                            mutate(Assets = Price^2)
+```
+
+
+
 # 🔹 Workflows
 
 ```{r}
@@ -126,6 +140,7 @@ output_final <- output_final %>%
 #output_final$graficos[[1]]
 ```
 
+
 # 🔹 Generación de tablas
 
 Se utiliza la función **tbl_regression()** del paquete **{gtsummary}** 📦 para generar las tablas de resúmen de cada uno de los modelos.
@@ -145,8 +160,9 @@ mutate(tabla_modelo = map(modelo, ~ tbl_regression(.x, exponentiate = TRUE) %>%
 ```
 
 ```{r}
-#output_final$tabla_modelo[[1]
+#output_final$tabla_modelo[[1]]
 ```
+
 
 # 🔹 automagic_tabs2
 
