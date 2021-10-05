@@ -23,7 +23,7 @@ knitr::opts_chunk$set(warning = FALSE,
                       comment=FALSE)
 ```
 
--   Librerias
+# 🔹 Librerias
 
 ```{r}
 library(sknifedatar)
@@ -36,7 +36,9 @@ library(performance)
 library(see)
 ```
 
--   Datos
+# 🔹Datos
+
+Datos de riesgo crediticio
 
 ```{r}
 data(credit_data)
@@ -46,6 +48,10 @@ credit_data <- credit_data %>%
   select(- c(Marital, Job, Records, Seniority, Expenses, Income, Amount)) %>% 
   mutate(Status = fct_relevel(Status, "bad"))
 ```
+
+# 🔹 Dataset anidado
+
+Se genera un dataset anidado, según la variable Home (tipo de propietario)
 
 ```{r}
 dataset <- credit_data %>% nest(datos = -Home)
@@ -60,6 +66,8 @@ dataset <- dataset %>% filter(Home != "ignore")
 ```{r}
 # dataset$datos[[1]] %>% head()
 ```
+
+# 🔹 Workflows
 
 ```{r}
 #Modelo
@@ -80,6 +88,10 @@ workflow_credito <- workflow() %>%
   add_recipe(receta)
 ```
 
+# 🔹 Ajuste de modelos
+
+Se ajusta el workflow para cada una de las series en el dataset anidado. Un modelo para cada tipo de propiedad.
+
 ```{r}
 output_final <- dataset %>% 
   
@@ -96,6 +108,10 @@ output_final <- dataset %>%
 #output_final$modelo[[1]]
 ```
 
+# 🔹 Generación de gráficos
+
+Se generan gráficos para evaluar los modelos. En este caso, se utiliza la función **check_model()** del paquete **{performance}** 📦 para evaluar el fctor de inflación de la varianza (o VIF por sus siglas en inglés).
+
 ```{r}
 output_final <- output_final %>% 
   
@@ -110,15 +126,18 @@ output_final <- output_final %>%
 #output_final$graficos[[1]]
 ```
 
+# 🔹 Generación de tablas
+
+Se utiliza la función **tbl_regression()** del paquete **{gtsummary}** 📦 para generar las tablas de resúmen de cada uno de los modelos.
 
 ```{r}
 output_final <- output_final %>% 
   
-  mutate(tabla_modelo = map(modelo, ~ tbl_regression(.x, exponentiate = TRUE) %>% 
-                             bold_p(t = 0.15) %>%
-                             bold_labels() %>% 
-                             as_gt() %>%
-                             gt::tab_source_note(gt::md("Fuente: R-Rosario*"))))
+mutate(tabla_modelo = map(modelo, ~ tbl_regression(.x, exponentiate = TRUE) %>% 
+                         bold_p(t = 0.15) %>%
+                         bold_labels() %>% 
+                         as_gt() %>%
+                         gt::tab_source_note(gt::md("**Fuente: R-Rosario**"))))
 ```
 
 ```{r}
@@ -126,10 +145,12 @@ output_final <- output_final %>%
 ```
 
 ```{r}
-#output_final$tabla_modelo[[1]]
+#output_final$tabla_modelo[[1]
 ```
 
--   Tabs
+# 🔹 automagic_tabs2
+
+La función **automagic_tabs2()** del paquete **{sknifedatar}** 📦 permite generar tabs incluyendo 2 objetos de un dataframe. En este caso, se incluyen los gráficos y las tablas generados.
 
 ```{r ,echo=FALSE}
 xaringanExtra::use_panelset()
