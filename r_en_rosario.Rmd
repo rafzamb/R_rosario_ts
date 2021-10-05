@@ -17,19 +17,26 @@ knitr::include_graphics('images/gif_serie.gif')
 ```
 # Sknifedatar
 
+
 **Ajuste y visualización de múltiples modelos**
 
 **sobre múltiples series de tiempo**
 
+
+
+```{r, echo=FALSE, out.width='10%', out.height='10%', fig.align='center'}
+knitr::include_graphics('images/r_en_rosario.jpg')
+```
+
 <br>
-<br>
-<br>
-2021-06-24
 
 Rafael Zambrano & Karina Bartolomé
-<br>
+
+2021-10-06
+
 
 ---
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(warning = FALSE, 
                       message = FALSE, 
@@ -106,12 +113,12 @@ knitr::include_graphics('images/modeltime.png')
 ---
 
 # Sknifedatar 📦
-#### Una extensión de **#modeltime**
+#### Una extensión de **{modeltime}**
 ```{r, eval=FALSE}
 install.packages('sknifedatar')
 ```
 --
-```{r, echo=FALSE, out.width='20%', out.height='20%', fig.align='center'}
+```{r, echo=FALSE, out.width='15%', out.height='15%', fig.align='center'}
 knitr::include_graphics('images/sknifedatar.png')
 ```
 
@@ -167,6 +174,7 @@ xaringanExtra::use_panelset()
 
 # Datos 📊
 
+Se utilizan datos de [Competencia de Kaggle: M5 Forecasting 2020](https://www.kaggle.com/c/m5-forecasting-accuracy/data?select=sales_train_evaluation.csv)
 
 --
 ```{r}
@@ -193,72 +201,6 @@ data %>% group_by(dept_id) %>%
 ```
 
 ---
-### Detección de anomalías 🔍
-
-```{r, fig.width=10, fig.height=5, message=FALSE, eval=FALSE}
-data %>% group_by(dept_id) %>%
-  plot_anomaly_diagnostics(date, value) 
-```
-
-```{r, fig.width=10, fig.height=6, message=FALSE, echo=FALSE}
-data %>% group_by(dept_id) %>%
-  plot_anomaly_diagnostics(date, value, .anom_size = 2, .interactive=FALSE,
-    .facet_ncol = 2, .max_anomalies = 0.05, .facet_scales = 'free_y', .line_size=0.1) 
-```
-
----
-
-### Limpieza de anomalías
-
-```{r}
-data_cleaned <- data %>%
-  
-  group_by(dept_id) %>% 
-  
-  # 1. Decompose and anomalize the STL decomposition remainder
-  time_decompose(value) %>%
-  
-  # 2. Fix negative values if any in observed
-  mutate(observed = ifelse(observed < 0, 0, observed)) %>%
-  
-  # 3. Identify anomalies
-  anomalize(remainder) %>%
-  
-  # 4. Clean & repair anomalous data
-  clean_anomalies() %>% 
-  
-  ungroup() 
-```
-
-```{r, echo=FALSE}
-data_cleaned %>% 
-  filter(anomaly == "Yes", dept_id=='FOODS_3') %>%
-  select(dept_id, date, anomaly, observed, observed_cleaned) %>%
-  gt()
-```
-
-
----
-
-```{r}
-data_cleaned <- data_cleaned %>% select(dept_id, date, value = observed_cleaned)
-```
-
-
-Graficando nuevamente las series, se observa que ya no se mantienen observaciones atípicas:
-
-
-```{r, fig.width=10, fig.height=6, message=FALSE, echo=FALSE}
-data_cleaned %>% group_by(dept_id) %>%
-  plot_time_series(date, value, .interactive=FALSE,
-    .facet_ncol = 2, .facet_scales = 'free_y', .line_size=0.5) 
-```
-
-
-
-
-
----
 
 
 
@@ -269,7 +211,7 @@ data_cleaned %>% group_by(dept_id) %>%
 .panel[.panel-name[FOODS_2]
 
 ```{r, message=FALSE, echo=FALSE, fig.width=10, fig.height=6}
-nest_data <- data_cleaned %>% nest(nested_column = -dept_id)
+nest_data <- data %>% nest(nested_column = -dept_id)
 nest_plots <- nest_data %>%
   mutate(ts_plots = map(nested_column, 
           ~  plot_stl_diagnostics(.x, 
@@ -312,7 +254,7 @@ nest_plots$ts_plots[[4]]
 .panel[.panel-name[FOODS_2]
 
 ```{r, message=FALSE, echo=FALSE, fig.width=10, fig.height=6}
-nest_data <- data_cleaned %>% 
+nest_data <- data %>% 
   filter(date>as.Date('2016-01-01')) %>% 
   nest(nested_column = -dept_id)
 nest_plots <- nest_data %>%
@@ -352,6 +294,71 @@ nest_plots$ts_plots[[4]]
 ]
 
 ---
+### Detección de anomalías 🔍
+
+```{r, fig.width=10, fig.height=5, message=FALSE, eval=FALSE}
+data %>% group_by(dept_id) %>%
+  plot_anomaly_diagnostics(date, value) 
+```
+
+```{r, fig.width=10, fig.height=6, message=FALSE, echo=FALSE}
+data %>% group_by(dept_id) %>%
+  plot_anomaly_diagnostics(date, value, .anom_size = 2, .interactive=FALSE,
+    .facet_ncol = 2, .max_anomalies = 0.05, .facet_scales = 'free_y', .line_size=0.1) 
+```
+
+---
+<br>
+<br>
+```{r, echo=FALSE, out.height='75%', out.width='75%', fig.align='center'}
+knitr::include_graphics('images/outliers-2.png')
+```
+
+---
+### Limpieza de anomalías
+
+```{r}
+data_cleaned <- data %>%
+  
+  group_by(dept_id) %>% 
+  
+  time_decompose(value) %>%
+  
+  mutate(observed = ifelse(observed < 0, 0, observed)) %>%
+  
+  anomalize(remainder) %>%
+  
+  clean_anomalies() %>% 
+  
+  ungroup() 
+```
+
+```{r, echo=FALSE}
+data_cleaned %>% 
+  filter(anomaly == "Yes", dept_id=='FOODS_3') %>%
+  select(dept_id, date, anomaly, observed, observed_cleaned) %>%
+  gt()
+```
+
+
+---
+
+Se seleccionan las variables relevantes: 
+
+```{r}
+data_cleaned <- data_cleaned %>% 
+  select(dept_id, date, value = observed_cleaned)
+```
+
+Graficando nuevamente las series, se observa que ya no se mantienen observaciones atípicas:
+
+```{r, fig.width=10, fig.height=6, message=FALSE, echo=FALSE}
+data_cleaned %>% group_by(dept_id) %>%
+  plot_time_series(date, value, .interactive=FALSE,
+    .facet_ncol = 2, .facet_scales = 'free_y', .line_size=0.5) 
+```
+
+---
 
 <br>
 <br>
@@ -367,7 +374,7 @@ knitr::include_graphics('images/gif_gatos_multi.gif')
 
 ### Preparación de datos ⚙️
 
-* Se selecciona el departamento 🏖 **FOODS_3** 
+* Se selecciona el departamento **FOODS_3** 
 
 ```{r, fig.height=3, fig.width=10}
 data_foods3 <- data_cleaned %>% 
@@ -376,7 +383,7 @@ data_foods3 <- data_cleaned %>%
 ```
 
 --
-* Particiona el dataset en train y test ✂️
+* Se particiona el dataset en train y test ✂️
 
 ```{r, fig.height=3, fig.width=10}
 splits <- data_foods3 %>%  
@@ -389,11 +396,12 @@ splits <- data_foods3 %>%
 ```{r, fig.height=6, fig.width=10}
 splits %>% 
   tk_time_series_cv_plan() %>%
-  plot_time_series_cv_plan(date, value) 
+  plot_time_series_cv_plan(date, value, 
+                           .title='Partición temporal') 
 ```
 
 ---
-### Receta 🌮
+### Receta 🧁
 Se crea una receta de **preprocesamiento**, incluye la fórmula a estimar y un paso adicional que añade variables en función de la fecha.
 ```{r}
 receta <- recipe(value ~ date, data = training(splits)) %>%
@@ -446,7 +454,7 @@ m_prophet_boost <- workflow() %>%
 ---
 ### Modeltimetable 
 
-El objeto central del ecosistema #modeltime 📦 es el **modeltime_table**, el cual incluye todos los modelos entrenados para realizar comparaciones. 
+El objeto central del ecosistema **{modeltime}** 📦 es el **modeltime_table**, el cual incluye todos los modelos entrenados para realizar comparaciones. 
 
 ```{r, eval=FALSE}
 modelos <- modeltime_table(m_autoarima,
@@ -466,7 +474,7 @@ modelos %>% rmarkdown::paged_table(list(rows.print = 6))
 ```
 
 ---
-### Calibración de modelos 🔧
+### Calibración de modelos ⚙️
 Se verifica el **rendimiento** de los modelos sobre la partición de test.
 
 ```{r}
@@ -574,7 +582,7 @@ reactable::reactable(nest_data, details = function(index) {
 
 ---
 
-### Recetas 🌮
+### Recetas 🧁
 ```{r}
 # Receta base
 recipe_base <- recipe(value~date, data=data_cleaned)
@@ -593,11 +601,18 @@ recipe_date_extrafeatures_lag <- recipe_date_extrafeatures %>%
 recipe_date_extrafeatures_lag %>% prep() %>% juice() %>% head(2) %>% gt()
 ```
 
+---
+
+Se imputan los valores faltantes en la variable resagada: 
+
 ```{r}
 recipe_date_extrafeatures_lag <- recipe_date_extrafeatures_lag %>% 
   step_ts_impute(all_numeric(), period=365)
 ```
 
+```{r, echo=FALSE}
+recipe_date_extrafeatures_lag %>% prep() %>% juice() %>% head(2) %>% gt()
+```
 
 ---
 ### Modelos 🚀
@@ -664,7 +679,10 @@ wfs_multifit$table_time %>%
 ```
 
 ---
-**Performance según rsq de cada modelo en cada serie**
+**Performance según MAE de cada modelo en cada serie**
+
+Se utiliza la función **modeltime_wfs_heatmap()** de **{sknifedatar}** 📦 para visualizar la performance de cada workflow. 
+
 .panelset[
 .panel[.panel-name[FOODS_2]
 
@@ -748,7 +766,7 @@ wfs_refit <- readRDS('modelos/wfs_refit.rds')
 ```
 
 ---
-### Proyecciones a 12 meses 🔮
+### Proyecciones a 6 meses 🔮
 
 ```{r, message=FALSE, warning=FALSE, comment=FALSE}
 wfs_forecast <- modeltime_wfs_multiforecast(wfs_refit, 
@@ -829,12 +847,21 @@ knitr::include_graphics('images/gif_minon_2.gif')
 ---
 ## Generación automática de tabs 🙌
 
-👉 **Código inline** , utilizando un dataframe anidado, que incluye una variable del resultado a presentar por tab ('ts_plots'), y una variable agrupadora ('state')
+👉 **Código inline** , utilizando un dataframe anidado, que incluye una variable del resultado a presentar por tab ('.plot'), y una variable agrupadora ('Species')
 
 ```{r, eval=FALSE}
-`r automagic_tabs(input_data = nest_plots_1, 
-                  panel_name = "state", 
-                  .output = "ts_plots")`
+`r automagic_tabs(input_data = dataset, 
+                  panel_name = "Species", 
+                  .output = ".plot")`
+```
+
+También es posible presentar más de un objeto del dataframe anidado: gráficos y tablas:
+
+```{r, eval=FALSE}
+`r automagic_tabs2(input_data = dataset, 
+                   panel_name = Species, 
+                   .plot, .table)`
+
 ```
 
 
