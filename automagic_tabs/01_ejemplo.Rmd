@@ -23,32 +23,43 @@ knitr::opts_chunk$set(warning = FALSE,
                       comment=FALSE)
 ```
 
--   Librerias
+
+# 🔹 Librerias
 
 ```{r}
 library(sknifedatar)
 library(timetk)
 library(tidyverse)
+library(gt)
 ```
 
--   Datos
+# 🔹 Datos
+
+Se utilizan datos del Estimador Mensual de Actividad Económica (EMAE) de Argentina. 
 
 ```{r}
 emae <- sknifedatar::emae_series 
 
-emae %>% head()
+emae %>% head() %>% gt()
 ```
+
+# 🔹 Dataframe anidado
+
+Se genera un dataframe anidado según el sector económico
 
 ```{r}
 nest_data <- emae %>%
   nest(nested_column = -sector)
 
-nest_data
+nest_data %>% head()
 ```
 
 ```{r}
-nest_data$nested_column[[1]]
+nest_data$nested_column[[1]] %>% head() %>% gt()
 ```
+
+
+# 🔹 Evolución de la serie de Comercio
 
 ```{r}
 nest_data$nested_column[[1]] %>% 
@@ -57,6 +68,10 @@ nest_data$nested_column[[1]] %>%
                    .value = value,
                    .interactive = FALSE)
 ```
+
+# 🔹 Gráficos en el dataframe anidado
+
+Se utiliza la función **map()** del paquete **{purrr}** 📦 para añadir una columna de gráficos de evolición de cada una de las series anidadas. 
 
 ```{r}
 nest_data <- nest_data %>% 
@@ -68,14 +83,17 @@ nest_data <- nest_data %>%
                                            .line_size = 0.15)
                          ))
 
-nest_data
+nest_data %>% head()
 ```
 
-```{r}
+
+```{r, echo=FALSE}
 nest_data$ts_plots[[2]]
 ```
 
--   Tabs 1
+# 🔹 Automagic tabs 
+
+### Con echo = FALSE
 
 ```{r ,echo=FALSE}
 xaringanExtra::use_panelset()
@@ -83,6 +101,6 @@ xaringanExtra::use_panelset()
 
 `r automagic_tabs(input_data = nest_data, panel_name = "sector", .output = "ts_plots")`
 
--   Tabs 2
+### Con echo = TRUE
 
 `r automagic_tabs(input_data = nest_data, panel_name = "sector", .output = "ts_plots", echo = TRUE)`
