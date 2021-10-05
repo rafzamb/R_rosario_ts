@@ -380,7 +380,7 @@ data_foods3 <- data_cleaned %>%
 
 ```{r, fig.height=3, fig.width=10}
 splits <- data_foods3 %>%  
-  initial_time_split(prop = 0.85)
+  initial_time_split(prop = 0.7)
 ```
 
 ---
@@ -425,17 +425,12 @@ m_autoarima <- arima_reg() %>%
   set_engine('auto_arima') %>%  
   fit(value~date, data=training(splits))
 
-# Modelo: exponential smoothing
-m_exp_smoothing <- exp_smoothing() %>% 
-  set_engine('ets') %>% 
-  fit(value~date, data=training(splits))
-
 # Modelo: regresión lineal
 m_reg_lineal <- linear_reg() %>%
   set_engine("lm") %>%
   fit(value ~ as.numeric(date) + 
-                         factor(month(date, label = TRUE), ordered = FALSE)+
-                         factor(wday(date, label=TRUE), ordered=FALSE),
+              factor(month(date, label = TRUE), ordered = FALSE)+
+              factor(wday(date, label=TRUE), ordered=FALSE),
       data = training(splits))
 
 # Workflow: prophet boosted
@@ -445,7 +440,6 @@ m_prophet_boost <- workflow() %>%
     prophet_boost(mode='regression') %>%
     set_engine("prophet_xgboost")
   ) %>% 
-  
   fit(data = training(splits))
 ```
 
@@ -456,7 +450,6 @@ El objeto central del ecosistema #modeltime 📦 es el **modeltime_table**, el c
 
 ```{r, eval=FALSE}
 modelos <- modeltime_table(m_autoarima,
-                           m_exp_smoothing,
                            m_reg_lineal,
                            m_prophet_boost
                            )
@@ -514,7 +507,7 @@ forecast_series <- calibration_table %>%
 forecast_series %>% 
   plot_modeltime_forecast(
     .legend_max_width     = 30, 
-    .interactive          = FALSE,
+    .interactive          = TRUE,
     .conf_interval_alpha  = 0.2
   )
 ```
@@ -522,11 +515,11 @@ forecast_series %>%
 ---
 ### Selección y reajuste de modelos
 
-Se seleccionan 2 modelos y luego se reajustan ambos modelos en todos los datos (train + test)
+Se selecciona el mejor modelo, que en este caso fue el Prophet with xgboost errors. Luego se reajustan ambos modelos en todos los datos (train + test)
 
 ```{r}
 refit_tbl <- calibration_table %>%
-  filter(.model_id %in% c(2,4)) %>% 
+  filter(.model_id %in% c(3)) %>% 
   modeltime_refit(data = data_foods3)
 ```
 
@@ -585,17 +578,26 @@ reactable::reactable(nest_data, details = function(index) {
 ```{r}
 # Receta base
 recipe_base <- recipe(value~date, data=data_cleaned)
+
 # Características según fecha
 recipe_date_extrafeatures <- recipe_base %>% 
-  step_date(date, features = c('month','year','quarter','semester'))
+  step_date(date, 
+            features = c('week', 'month','year','quarter','semester'))
+
 # Resagos
 recipe_date_extrafeatures_lag <- recipe_date_extrafeatures %>% 
-  step_lag(value, lag = 1:6) %>% 
-  step_ts_impute(all_numeric(), period=365)
-# Fourier
-recipe_date_extrafeatures_fourier <-recipe_date_extrafeatures  %>% 
-  step_fourier(date, period = 365/12, K = 1)
+  step_lag(value, lag = 7)
 ```
+
+```{r, echo=FALSE}
+recipe_date_extrafeatures_lag %>% prep() %>% juice() %>% head(2) %>% gt()
+```
+
+```{r}
+recipe_date_extrafeatures_lag <- recipe_date_extrafeatures_lag %>% 
+  step_ts_impute(all_numeric(), period=365)
+```
+
 
 ---
 ### Modelos 🚀
@@ -604,12 +606,13 @@ recipe_date_extrafeatures_fourier <-recipe_date_extrafeatures  %>%
 # prophet_xgboost
 prophet_boost <- prophet_boost(mode = 'regression') %>% 
   set_engine("prophet_xgboost")
-# nnetar
-nnetar <- nnetar_reg() %>% 
-  set_engine("nnetar")
+
 #auto_arima_xgboost
 auto_arima_boost <- arima_boost() %>% 
   set_engine('auto_arima_xgboost')
+# tbats
+tbats <-seasonal_reg() %>% 
+  set_engine("tbats")
 ```
 
 ---
@@ -622,13 +625,12 @@ wfsets <- workflow_set(
   preproc = list(
     base                  = recipe_base,
     extrafeatures         = recipe_date_extrafeatures,
-    extrafeatures_lag     = recipe_date_extrafeatures_lag,
-    extrafeatures_fourier = recipe_date_extrafeatures_fourier
+    extrafeatures_lag     = recipe_date_extrafeatures_lag
   ),
   models  = list(
-    #M_arima_boost       = auto_arima_boost,
+    M_arima_boost       = auto_arima_boost,
     M_prophet_boost     = prophet_boost,
-    M_nnetar            = nnetar
+    M_tbats             = tbats
   ),
   cross   = TRUE
 ) 
@@ -647,7 +649,7 @@ wfsets %>%
 ### Ajuste de modelos ⚙️ 
 ```{r, eval=FALSE}
 wfs_multifit <- modeltime_wfs_multifit(serie = nest_data,
-                                       .prop = 0.8,
+                                       .prop = 0.7,
                                        .wfs  = wfsets)
 ```
 
@@ -672,7 +674,7 @@ plots <- wfs_multifit$models_accuracy %>%
   rename(.model_id=.model_names) %>% mutate(.fit_model = '') %>% 
   group_by(name_serie) %>% 
   nest() %>% 
-  mutate(plot = map(data, ~ modeltime_wfs_heatmap(., metric = 'rsq',
+  mutate(plot = map(data, ~ modeltime_wfs_heatmap(., metric = 'mae',
                                                  low_color = '#ece2f0',
                                                  high_color = '#1f356e'
                                                  ))) %>% 
@@ -706,7 +708,7 @@ plots$plot[[4]]
 ### Proyecciones 🔬
 ```{r, message=FALSE, warning=FALSE}
 wfs_multiforecast <- modeltime_wfs_multiforecast(
-  wfs_multifit$table_time, .prop=0.8)
+  wfs_multifit$table_time, .prop=0.7)
 ```
 
 ```{r, echo=FALSE, fig.height=6, fig.width=14, fig.align='center'}
@@ -729,8 +731,8 @@ wfs_multiforecast %>%
 ```{r}
 wfs_bests<- modeltime_wfs_multibestmodel(
   .table = wfs_multiforecast,
-  .metric = "rsq",
-  .minimize = FALSE
+  .metric = "mae",
+  .minimize = TRUE
 )
 ```
 
@@ -750,7 +752,7 @@ wfs_refit <- readRDS('modelos/wfs_refit.rds')
 
 ```{r, message=FALSE, warning=FALSE, comment=FALSE}
 wfs_forecast <- modeltime_wfs_multiforecast(wfs_refit, 
-                                            .h = "12 month")
+                                            .h = "6 month")
 ```
 
 ```{r, echo=FALSE, fig.width=10, fig.height=6}
@@ -769,11 +771,8 @@ wfs_forecast %>%
 ```
 ---
 
- <br> 
- <br>
 # Automagic Tabs 
 <br>
-
 
 ```{r, out.width='50%', fig.align='center', echo=FALSE}
 knitr::include_graphics('images/gif_gato_tocadisco.gif')
