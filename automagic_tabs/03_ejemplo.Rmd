@@ -1,28 +1,175 @@
 ---
-title: "Untitled"
-output: html_document
+title: "Sknifedatar: R-Rosario"
+description: |
+  Ejemplo automagic tabs2 para análisis de modelos.
+author:
+  - first_name: "Rafael"
+    last_name: "Zambrano"
+    url: https://rafael-zambrano-blog-ds.netlify.app/
+  - first_name: "Karina"
+    last_name: "Bartolomé"
+    url: https://karbartolome-blog.netlify.app/
+    affiliation: R-Rosario
+    affiliation_url: https://renrosario.rbind.io/
+date: 10-06-2021
+output:
+  distill::distill_article:
+    self_contained: true
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(warning = FALSE, 
+                      message = FALSE, 
+                      comment=FALSE)
 ```
 
-## R Markdown
+# 🔹 Librerias
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
+```{r}
+library(sknifedatar)
+library(tidymodels)
+library(tidyverse)
+library(modeldata)
+library(rmarkdown)
+library(gtsummary)
+library(performance)
+library(see)
 ```
 
-## Including Plots
+# 🔹Datos
 
-You can also embed plots, for example:
+Datos de riesgo crediticio
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+```{r}
+data(credit_data)
+
+credit_data <- credit_data %>% 
+  drop_na() %>%
+  select(- c(Marital, Job, Records, Seniority, Expenses, Income, Amount)) %>% 
+  mutate(Status = fct_relevel(Status, "bad"))
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+# 🔹 Dataset anidado
+
+Se genera un dataset anidado, según la variable Home (tipo de propietario)
+
+```{r}
+dataset <- credit_data %>% nest(datos = -Home)
+
+#dataset
+```
+
+```{r}
+dataset <- dataset %>% filter(Home != "ignore")
+```
+
+```{r}
+# dataset$datos[[1]] %>% head()
+```
+
+```{r}
+set.seed(42)
+dataset$datos[[2]] <- dataset$datos[[2]] %>% 
+                            mutate(Time = Age+runif(nrow(dataset$datos[[2]]), min=5, max=20))
+```
+
+```{r}
+set.seed(42)
+dataset$datos[[3]] <- dataset$datos[[3]] %>% 
+                            mutate(Assets = Price^2)
+```
+
+
+
+# 🔹 Workflows
+
+```{r}
+#Modelo
+modelo <- logistic_reg() 
+
+#Receta
+receta <- recipe(Status ~ ., data = dataset$datos[[1]]) %>% 
+  
+  step_normalize(all_numeric_predictors()) %>% 
+  
+  step_dummy(all_nominal_predictors())
+
+#workflow
+workflow_credito <- workflow() %>% 
+  
+  add_model(modelo) %>% 
+  
+  add_recipe(receta)
+```
+
+# 🔹 Ajuste de modelos
+
+Se ajusta el workflow para cada una de las series en el dataset anidado. Un modelo para cada tipo de propiedad.
+
+```{r}
+output_final <- dataset %>% 
+  
+  mutate(modelo = map(datos, ~ workflow_credito %>% 
+                        fit(.x) %>% 
+                        extract_fit_engine()))
+```
+
+```{r}
+#output_final
+```
+
+```{r}
+#output_final$modelo[[1]]
+```
+
+# 🔹 Generación de gráficos
+
+Se generan gráficos para evaluar los modelos. En este caso, se utiliza la función **check_model()** del paquete **{performance}** 📦 para evaluar el fctor de inflación de la varianza (o VIF por sus siglas en inglés).
+
+```{r}
+output_final <- output_final %>% 
+  
+  mutate(graficos = map(modelo, ~ check_model(.x, check = "vif")))
+```
+
+```{r}
+#output_final
+```
+
+```{r}
+#output_final$graficos[[1]]
+```
+
+
+# 🔹 Generación de tablas
+
+Se utiliza la función **tbl_regression()** del paquete **{gtsummary}** 📦 para generar las tablas de resúmen de cada uno de los modelos.
+
+```{r}
+output_final <- output_final %>% 
+  
+mutate(tabla_modelo = map(modelo, ~ tbl_regression(.x, exponentiate = TRUE) %>% 
+                         bold_p(t = 0.15) %>%
+                         bold_labels() %>% 
+                         as_gt() %>%
+                         gt::tab_source_note(gt::md("**Fuente: R-Rosario**"))))
+```
+
+```{r}
+#output_final
+```
+
+```{r}
+#output_final$tabla_modelo[[1]]
+```
+
+
+# 🔹 automagic_tabs2
+
+La función **automagic_tabs2()** del paquete **{sknifedatar}** 📦 permite generar tabs incluyendo 2 objetos de un dataframe. En este caso, se incluyen los gráficos y las tablas generados.
+
+```{r ,echo=FALSE}
+xaringanExtra::use_panelset()
+```
+
+`r automagic_tabs2(input_data = output_final, panel_name = Home, graficos, tabla_modelo)`

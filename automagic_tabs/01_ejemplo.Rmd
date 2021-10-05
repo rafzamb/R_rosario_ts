@@ -1,0 +1,88 @@
+---
+title: "Sknifedatar: R-Rosario"
+description: |
+  Ejemplo automagic tabs para series de tiempo.
+author:
+  - first_name: "Rafael"
+    last_name: "Zambrano"
+    url: https://rafael-zambrano-blog-ds.netlify.app/
+  - first_name: "Karina"
+    last_name: "Bartolomé"
+    url: https://karbartolome-blog.netlify.app/
+    affiliation: R-Rosario
+    affiliation_url: https://renrosario.rbind.io/
+date: 10-06-2021
+output:
+  distill::distill_article:
+    self_contained: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, 
+                      message = FALSE, 
+                      comment=FALSE)
+```
+
+-   Librerias
+
+```{r}
+library(sknifedatar)
+library(timetk)
+library(tidyverse)
+```
+
+-   Datos
+
+```{r}
+emae <- sknifedatar::emae_series 
+
+emae %>% head()
+```
+
+```{r}
+nest_data <- emae %>%
+  nest(nested_column = -sector)
+
+nest_data
+```
+
+```{r}
+nest_data$nested_column[[1]]
+```
+
+```{r}
+nest_data$nested_column[[1]] %>% 
+  
+  plot_time_series(.date_var = date,
+                   .value = value,
+                   .interactive = FALSE)
+```
+
+```{r}
+nest_data <- nest_data %>% 
+  mutate(ts_plots = map(nested_column, 
+                        ~ plot_time_series(.data = .x,
+                                           .date_var = date,
+                                           .value = value,
+                                           .interactive = FALSE,
+                                           .line_size = 0.15)
+                         ))
+
+nest_data
+```
+
+```{r}
+nest_data$ts_plots[[2]]
+```
+
+-   Tabs 1
+
+```{r ,echo=FALSE}
+xaringanExtra::use_panelset()
+```
+
+`r automagic_tabs(input_data = nest_data, panel_name = "sector", .output = "ts_plots")`
+
+-   Tabs 2
+
+`r automagic_tabs(input_data = nest_data, panel_name = "sector", .output = "ts_plots", echo = TRUE)`
