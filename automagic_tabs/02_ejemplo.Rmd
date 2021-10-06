@@ -67,7 +67,7 @@ set.seed(42)
 splits <- initial_split(credit_data)
 ```
 
-Definición del workflow: 
+Definición del workflow:
 
 ```{r}
 #Modelo
@@ -95,13 +95,14 @@ modelo <- workflow_credito %>%
   fit( training(splits))
 
 modelo %>% extract_fit_engine() %>% 
+  
   extract_eq(use_coef=TRUE, 
              wrap = TRUE,
              var_colors = c(Price='blue', Debt='red'), 
              terms_per_line = 1)
 ```
 
-# 🔹 Predicciones 
+# 🔹 Predicciones
 
 ```{r}
 predicciones <- modelo %>% 
@@ -124,7 +125,7 @@ predicciones %>%
   autoplot(type = "heatmap")
 ```
 
-Matriz de confusión cambiando el punto de corte: 
+Matriz de confusión cambiando el punto de corte:
 
 ```{r}
 predicciones %>% 
@@ -140,7 +141,7 @@ predicciones %>%
   autoplot(type = "heatmap")
 ```
 
-Generación de distintos puntos de corte: se obtienen diversos puntos de corte según las probabilidades predichas. Estos serán los puntos de corte a analizar en la matriz de confusión. 
+Generación de distintos puntos de corte: se obtienen diversos puntos de corte según las probabilidades predichas. Estos serán los puntos de corte a analizar en la matriz de confusión.
 
 ```{r}
 thresholds_cuts <- predicciones$.pred_bad %>% 
@@ -152,31 +153,31 @@ thresholds_cuts
 thresholds_cuts %>% plot()
 ```
 
-Tibble con distintos puntos de corte y matriz de confusión asociada a cada uno de ellos. 
+Tibble con distintos puntos de corte y matriz de confusión asociada a cada uno de ellos.
 
 ```{r}
 thresholds_tibble <- tibble(thresholds = thresholds_cuts) %>%
   
   mutate(matrices_plot = map(thresholds, ~ predicciones %>%
-                               
-                   mutate(.pred_class = make_two_class_pred(.pred_bad,
-                                                            levels(Status),
-                                                            threshold = .x)) %>% 
-                               
-                               select(Status, .pred_class) %>% 
-                               
-                               conf_mat(Status, .pred_class) %>% 
-                               
-                               autoplot(type = "heatmap")))
+                             
+                 mutate(.pred_class = make_two_class_pred(.pred_bad,
+                                                          levels(Status),
+                                                          threshold = .x)) %>% 
+                             
+                             select(Status, .pred_class) %>% 
+                             
+                             conf_mat(Status, .pred_class) %>% 
+                             
+                             autoplot(type = "heatmap")))
 
 thresholds_tibble %>% paged_table()
 ```
 
-```{r}
+```{, echo=FALSE}
 thresholds_tibble$matrices_plot[[1]]
 ```
 
-# 🔹 Automagic tabs 
+# 🔹 Automagic tabs
 
 ```{r ,echo=FALSE}
 xaringanExtra::use_panelset()

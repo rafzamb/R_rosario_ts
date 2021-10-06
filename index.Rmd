@@ -870,7 +870,7 @@ Agradecemos la colaboración de Rodrigo Serrano en estas funciones
 knitr::include_graphics('images/rodrigo.jpg')
 ```
 .center[
-[![Twitter Badge](https://img.shields.io/badge/-@Rod_Serrano-1ca0f1?style=flat&labelColor=1ca0f1&logo=twitter&logoColor=white&link=https://twitter.com/Rod_Serrano)](https://twitter.com/Rod_Serrano)[![Github Badge](https://img.shields.io/badge/-rodserr-black?style=flat&logo=Github&logoColor=white&link=https://github.com/rodserr)](https://github.com/rodserr)
+[![Twitter Badge](https://img.shields.io/badge/-@Rod_Serrano-1ca0f1?style=flat&labelColor=1ca0f1&logo=twitter&logoColor=white&link=https://twitter.com/Rod_Serrano)](https://twitter.com/Rod_Serrano)[![Github Badge](https://img.shields.io/badge/-rodserr-black?style=flat&logo=Github&logoColor=white&link=https://github.com/rodserr)](https://github.com/rodserr)[![Linkedin Badge](https://img.shields.io/badge/-rodrigo serrano-blue?style=flat&logo=Linkedin&logoColor=white&link=https://www.linkedin.com/in/rodrigo-serrano-morales/)](https://www.linkedin.com/in/rodrigo-serrano-morales/) 
 ]
 
 ]

@@ -70,16 +70,12 @@ dataset <- dataset %>% filter(Home != "ignore")
 ```{r}
 set.seed(42)
 dataset$datos[[2]] <- dataset$datos[[2]] %>% 
-                            mutate(Time = Age+runif(nrow(dataset$datos[[2]]), min=5, max=20))
-```
+                            mutate(Time = Age+runif(nrow(dataset$datos[[2]]), 
+                                                    min=5, max=20))
 
-```{r}
-set.seed(42)
 dataset$datos[[3]] <- dataset$datos[[3]] %>% 
                             mutate(Assets = Price^2)
 ```
-
-
 
 # 🔹 Workflows
 
@@ -114,7 +110,6 @@ output_final <- dataset %>%
                         extract_fit_engine()))
 ```
 
-
 ```{r}
 #output_final
 ```
@@ -125,7 +120,7 @@ output_final <- dataset %>%
 
 # 🔹 Generación de gráficos
 
-Se generan gráficos para evaluar los modelos. En este caso, se utiliza la función **check_model()** del paquete **{performance}** 📦 para evaluar el fctor de inflación de la varianza (o VIF por sus siglas en inglés).
+Se generan gráficos para evaluar los modelos. En este caso, se utiliza la función **check_model()** del paquete **{performance}** 📦 para evaluar el factor de inflación de la varianza (o VIF por sus siglas en inglés).
 
 ```{r}
 output_final <- output_final %>% 
@@ -141,7 +136,6 @@ output_final <- output_final %>%
 #output_final$graficos[[1]]
 ```
 
-
 # 🔹 Generación de tablas
 
 Se utiliza la función **tbl_regression()** del paquete **{gtsummary}** 📦 para generar las tablas de resúmen de cada uno de los modelos.
@@ -150,7 +144,7 @@ Se utiliza la función **tbl_regression()** del paquete **{gtsummary}** 📦 par
 output_final <- output_final %>% 
   
 mutate(tabla_modelo = map(modelo, ~ tbl_regression(.x, exponentiate = TRUE) %>% 
-                         bold_p(t = 0.15) %>%
+                         bold_p(t = 0.1) %>%
                          bold_labels() %>% 
                          as_gt() %>%
                          gt::tab_source_note(gt::md("**Fuente: R-Rosario**"))))
@@ -163,7 +157,6 @@ mutate(tabla_modelo = map(modelo, ~ tbl_regression(.x, exponentiate = TRUE) %>%
 ```{r}
 #output_final$tabla_modelo[[1]]
 ```
-
 
 # 🔹 automagic_tabs2
 
