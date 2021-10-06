@@ -35,6 +35,7 @@ library(skimr)
 library(rmarkdown)
 library(gtsummary)
 library(gt)
+library(equatiomatic)
 ```
 
 # 🔹 Datos
@@ -87,12 +88,23 @@ workflow_credito <- workflow() %>%
   add_recipe(receta)
 ```
 
-Predicciones: 
+# 🔹 Modelo ajustado
 
 ```{r}
-predicciones <- workflow_credito %>% 
-  
-  fit( training(splits)) %>% 
+modelo <- workflow_credito %>% 
+  fit( training(splits))
+
+modelo %>% extract_fit_engine() %>% 
+  extract_eq(use_coef=TRUE, 
+             wrap = TRUE,
+             var_colors = c(Price='blue', Debt='red'), 
+             terms_per_line = 1)
+```
+
+# 🔹 Predicciones 
+
+```{r}
+predicciones <- modelo %>% 
   
   augment( testing(splits))
 
