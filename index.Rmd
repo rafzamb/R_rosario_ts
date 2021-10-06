@@ -545,7 +545,7 @@ forecast_final <- refit_tbl %>%
 
 ---
 
-### Visualización de la proyección a 2 años
+### Visualización de la proyección a 6 meses
 ```{r, fig.height=5, fig.width=10}
 forecast_final %>% 
   plot_modeltime_forecast(
@@ -656,7 +656,7 @@ wfsets <- workflow_set(
 
 ```{r}
 wfsets %>% 
-  rmarkdown::paged_table(list(rows.print = 6))
+  rmarkdown::paged_table(list(rows.print = 9))
 ```
 
 ---
