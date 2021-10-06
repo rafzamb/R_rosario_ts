@@ -78,7 +78,7 @@ xaringanExtra::use_progress_bar(color = "#0051BA", location = "top")
 ### Rafael Zambrano
 - Actuario 🇻🇪
 - Data Scientist en Ualá 🚀
-- Magister en métodos cuantitativos (en curso)
+- Magister en métodos cuantitativos (UBA, en curso)
 ]
 .pull-right[
 <br>
@@ -92,7 +92,7 @@ knitr::include_graphics('images/imagen_b.jpeg')
 ### Karina Bartolomé
 - Economista 🇦🇷
 - Data Scientist en Ualá 🚀
-- Especialista en métodos cuantitativos (en curso)
+- Especialista en métodos cuantitativos (UBA, en curso)
 ]
 .pull-right[
 <br>
@@ -851,19 +851,32 @@ knitr::include_graphics('images/gif_minon_2.gif')
 
 ```{r, eval=FALSE}
 `r automagic_tabs(input_data = dataset, 
-                  panel_name = "Species", 
-                  .output = ".plot")`
+                  panel_name = "Species", .output = ".plot")`
 ```
-
-También es posible presentar más de un objeto del dataframe anidado: gráficos y tablas:
 
 ```{r, eval=FALSE}
 `r automagic_tabs2(input_data = dataset, 
-                   panel_name = Species, 
-                   .plot, .table)`
-
+                   panel_name = Species, .plot, .table)`
 ```
 
+
+Agradecemos la colaboración de Rodrigo Serrano en estas funciones
+.pull-left[
+<br>
+```{r, out.width='35%', fig.align='center', echo=FALSE}
+knitr::include_graphics('images/rodrigo.jpg')
+```
+.center[
+[![Twitter Badge](https://img.shields.io/badge/-@Rod_Serrano-1ca0f1?style=flat&labelColor=1ca0f1&logo=twitter&logoColor=white&link=https://twitter.com/Rod_Serrano)](https://twitter.com/Rod_Serrano)[![Github Badge](https://img.shields.io/badge/-rodserr-black?style=flat&logo=Github&logoColor=white&link=https://github.com/rodserr)](https://github.com/rodserr)
+]
+
+]
+.pull-right[
+### Rodrigo Serrano
+- Actuario 🇻🇪
+- Data scientist
+- Especialización en métodos cuantitativos (UBA, en curso)
+]
 
 
 ---
