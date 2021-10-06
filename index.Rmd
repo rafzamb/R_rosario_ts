@@ -159,6 +159,7 @@ library(lubridate)
 
 ```{r, echo=FALSE}
 library(gt)
+options(scipen=999, digits=2)
 ```
 
 
@@ -335,9 +336,11 @@ data_cleaned <- data %>%
 
 ```{r, echo=FALSE}
 data_cleaned %>% 
-  filter(anomaly == "Yes", dept_id=='FOODS_3') %>%
+  filter(anomaly == "Yes") %>%
+  mutate(observed_cleaned = round(observed_cleaned, 2),
+         observed = round(observed, 2)) %>%
   select(dept_id, date, anomaly, observed, observed_cleaned) %>%
-  gt()
+  rmarkdown::paged_table(list(rows.print = 5))
 ```
 
 
